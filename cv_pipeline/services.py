@@ -4,8 +4,9 @@ import logging
 from functools import cached_property
 from sqlalchemy import create_engine
 from sqlalchemy.engine import URL
-from sqlalchemy.orm import declarative_base, DeclarativeBase
+from sqlalchemy.orm import declarative_base, DeclarativeBase, sessionmaker
 from langchain_postgres.vectorstores import PGVector
+from contextlib import contextmanager
 
 # Import custom utility functions
 from cv_pipeline.pipelines import create_data_models
@@ -58,6 +59,29 @@ class ServiceProvider:
             self.db_url,
             connect_args={"options": f"-c search_path={self.cv_schema}"},
         )
+
+    @cached_property
+    def SessionLocal(self):
+        """SQLAlchemy session factory, bound to the main engine."""
+        log.info("Creating session factory...")
+        return sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+
+    @contextmanager
+    def get_session(self):
+        """Provide a transactional scope around a series of operations."""
+        session = self.SessionLocal()
+        log.debug("Database session created.")
+        try:
+            yield session
+            session.commit()
+            log.debug("Session committed.")
+        except Exception:
+            log.error("Session rolled back due to an exception.")
+            session.rollback()
+            raise
+        finally:
+            session.close()
+            log.debug("Session closed.")
 
     @cached_property
     def engine_vectorstore(self):

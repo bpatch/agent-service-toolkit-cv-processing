@@ -453,7 +453,11 @@ if __name__ == "__main__":
     )
 
     jsonl_string_pds = (
-        response_pd.content.replace("`", "").replace("json", "").replace("jsonl", "")
+        response_pd.content.replace("`", "")
+        .replace("jsonl", "")
+        .replace("json", "")
+        .replace("<>", "")
+        .replace("</>", "")
     )
 
     position_data = [json.loads(line) for line in jsonl_string_pds.strip().splitlines()]
@@ -528,6 +532,8 @@ if __name__ == "__main__":
             response_cvs.content.replace("`", "")
             .replace("jsonl", "")
             .replace("json", "")
+            .replace("<>", "")
+            .replace("</>", "")
         )
         try:
             cv_data = [
@@ -540,19 +546,56 @@ if __name__ == "__main__":
                 protected_characteristic_data.append(
                     generate_demographic_profiles(p["position_number"], id).values()
                 )
-                suitability_data.append([p["position_number"], id, c["suitability"]])
+                if SIMULATE_MANUAL_REVIEW:
+
+                    response_suitability = services.llm_hot.invoke(
+                        f"""
+                    You are an expert Humanan Resources manager at a museum. Your primary function is to
+                    comment on the suitability of an applicant for a position.
+
+                    You have already determined that the applicant
+                    {" is " if c["suitability"] == "Y" else " is *not* "}
+                    suitable for the position.
+
+                    This is the applicant's cv information:
+                    {c}
+
+                    This is the position description information:
+                    {p}
+
+                    ### TASK ###
+                    Provide a very brief note of two or three sentences on the reason the applicant is or
+                    isn't suitable for the position to be kept on record.
+
+                    <comment>
+                    """
+                    )
+                    suitability_data.append(
+                        [
+                            p["position_number"],
+                            id,
+                            c["suitability"],
+                            response_suitability.content,
+                        ]
+                    )
         except Exception as e:
             log.error(e)
 
+    cv_data_id = str(uuid.uuid4())
     ut.write_to_csv(
-        f"data/source/cvs/{str(uuid.uuid4())}.csv",
+        f"data/source/cvs/{cv_data_id}.csv",
         generate_demographic_profiles("", "").keys(),
         protected_characteristic_data,
     )
 
     if SIMULATE_MANUAL_REVIEW:
         ut.write_to_csv(
-            f"data/source/cvs/{str(uuid.uuid4())}-manual-review.csv",
-            ["position_number", "application_id", "suitability_manual"],
+            f"data/source/cvs/{cv_data_id}-manual-review.csv",
+            [
+                "position_number",
+                "application_id",
+                "suitability_manual",
+                "suitability_comment",
+            ],
             suitability_data,
         )

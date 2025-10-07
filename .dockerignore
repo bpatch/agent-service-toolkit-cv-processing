@@ -11,3 +11,4 @@ venv
 .venv
 *.db
 privatecredentials/*
+*.csv

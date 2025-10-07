@@ -60,6 +60,7 @@ dependencies = [
     "langchain-postgres>=0.0.15",
     "python-docx>=1.2.0",
     "docx2pdf>=0.1.8",
+    "alembic>=1.16.5",
 ]
 
 [dependency-groups]

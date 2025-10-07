@@ -9,7 +9,7 @@ from langchain_postgres.vectorstores import PGVector
 from contextlib import contextmanager
 
 # Import custom utility functions
-from cv_pipeline.pipelines import create_data_models
+from cv_pipeline.pipelines import get_data_models
 import cv_pipeline.utils as ut
 
 # --- 1. Setup Logger ---
@@ -28,6 +28,11 @@ EMBEDDINGS_PROVIDER = os.environ["EMBEDDINGS_PROVIDER"]
 EMBEDDINGS_MODEL = os.environ["EMBEDDINGS_MODEL"]
 LLM_PROVIDER = os.environ["LLM_PROVIDER"]
 LLM_MODEL = os.environ["LLM_MODEL"]
+
+
+Base: DeclarativeBase = declarative_base()
+
+tables = get_data_models(Base)
 
 
 # --- 3. Service Provider Class ---
@@ -91,17 +96,6 @@ class ServiceProvider:
             self.db_url,
             connect_args={"options": f"-c search_path={self.vectorstore_schema}"},
         )
-
-    @cached_property
-    def Base(self) -> DeclarativeBase:
-        """SQLAlchemy declarative base."""
-        return declarative_base()
-
-    @cached_property
-    def tables(self):
-        """Creates and returns the application's data models/tables."""
-        log.info("Creating data models...")
-        return create_data_models(self.Base, self.engine)
 
     # --- AI & Vector Store Services ---
     @cached_property

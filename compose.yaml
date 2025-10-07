@@ -1,3 +1,7 @@
+networks:
+  app_net:
+    driver: bridge
+
 services:
   postgres:
     image: pgvector/pgvector:pg16 # Uses an image with pgvector pre-installed
@@ -15,6 +19,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - app_net
+
+  db-migrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.db_migrator
+    env_file:
+      - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
+    depends_on:
+      postgres:
+        condition: service_healthy # Wait for postgres to be ready
+    networks:
+      - app_net
 
   agent_service:
     build:
@@ -24,9 +43,10 @@ services:
       - "8080:8080"
     env_file:
       - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-migrator:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/info"]
       interval: 5s
@@ -52,6 +72,9 @@ services:
         - path: src/memory/
           action: sync+restart
           target: /app/memory/
+    networks:
+      - app_net
+
   streamlit_app:
     build:
       context: .
@@ -65,6 +88,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    env_file:
+      - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
     environment:
       - AGENT_URL=http://agent_service:8080
     develop:
@@ -78,64 +104,67 @@ services:
         - path: src/streamlit_app.py
           action: sync+restart
           target: /app/streamlit_app.py
+    networks:
+      - app_net
+
   cv_preprocess:
     build:
       context: .
       dockerfile: docker/Dockerfile.cv_preprocess
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
-      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
-      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
-      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+    env_file:
+      - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
     depends_on:
-      - postgres
+      db-migrator:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy # Wait for Ollama
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
+    networks:
+      - app_net
 
   cv_process:
     build:
       context: .
       dockerfile: docker/Dockerfile.cv_process
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
-      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
-      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
-      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+    env_file:
+      - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
     # Keep STDIN open for interaction
     stdin_open: true
     # Allocate a pseudo-TTY
     tty: true
     depends_on:
-      - postgres
+      db-migrator:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_healthy # Wait for Ollama
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
+    networks:
+      - app_net
 
   fake_data:
     build:
       context: .
       dockerfile: docker/Dockerfile.fake_data
+    env_file:
+      - .env
+      - docker.env # Overwrites POSTGRES_HOST and POSTGRES_PORT
     environment:
       - PYTHONPATH=/app
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
-      - LLM_PROVIDER=${LLM_PROVIDER:-gemma3:4b}
-      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
-      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
-      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     # Keep STDIN open for interaction
     stdin_open: true
     # Allocate a pseudo-TTY
     tty: true
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
+    depends_on:
+      ollama:
+        condition: service_healthy # Wait for Ollama
+    networks:
+      - app_net
 
   ollama:
     image: ollama/ollama
@@ -144,6 +173,13 @@ services:
       - ollama_data:/root/.ollama # Persists models
     ports:
       - "11434:11434"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
 
 volumes:
   postgres_data:

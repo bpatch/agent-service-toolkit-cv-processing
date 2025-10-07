@@ -3,6 +3,11 @@
 This tool demos a basic setup of an AI assistant for processing CVs of job
 applicants. 
 
+The key philosophy of the approach taken is to efficiently obtain expert human-in-the-loop information
+on what makes applicants suitable for positions and then utilise this information to process large
+numbers of applications. 
+The system is self-improving over time as it gets more expert feedback.
+
 > :warning: This project is in the early days of development and has not been thoroughly tested. Some
 instructions may not work as expected.
 
@@ -21,6 +26,21 @@ and run `docker-compose run --env EXPERIMENT=True --build cv_process` to see how
 and metrics (in the respective tables). This will also produce a mermaid diagram in the data/experiment_files
 directory.
 5. A streamlit dashboard to view the results of experiments.
+
+## Latest version of back end agent
+![mermaid diagram of back end agent](../data/experiment_files/cv_agent_graph_latest.png)
+
+
+## Performance analysis
+- The right metric for this use case is recall. This is because we want to make sure we retrieve all
+suitable applicants for further human review. We should also monitor precision because we may not want to
+overwhelm the human reviewers with unsuitable applicants (subject to a decision about whether all rejections
+should be subject to human review). 
+- Must assess if there are differences in success rates for different protected attribute values of
+applicants. This is necessary to ensure any bias can be found and appropriately handled.
+- Should also assess how well the system handles prompt injection. 
+- Should determine cost estimates, since if we can get the same performance for lower cost, then we should do
+that.
 
 ## Get the database running
 Before doing anything else it's a good idea to get the db running and check you can access it in dbeaver or

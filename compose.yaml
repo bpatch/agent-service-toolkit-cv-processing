@@ -1,14 +1,15 @@
 services:
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16 # Uses an image with pgvector pre-installed
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_DB=${POSTGRES_DB:-agent_service}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -77,6 +78,69 @@ services:
         - path: src/streamlit_app.py
           action: sync+restart
           target: /app/streamlit_app.py
+  cv_preprocess:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cv_preprocess
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data # Mounts host 'data' folder into the container
+
+  cv_process:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.cv_process
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data # Mounts host 'data' folder into the container
+
+  fake_data:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.fake_data
+    environment:
+      - PYTHONPATH=/app
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-agent_service}
+      - LLM_PROVIDER=${LLM_PROVIDER:-gemma3:4b}
+      - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
+      - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
+      - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    # Keep STDIN open for interaction
+    stdin_open: true
+    # Allocate a pseudo-TTY
+    tty: true
+    volumes:
+      - ./data:/app/data # Mounts host 'data' folder into the container
+
+  ollama:
+    image: ollama/ollama
+    restart: always
+    volumes:
+      - ollama_data:/root/.ollama # Persists models
+    ports:
+      - "11434:11434"
 
 volumes:
   postgres_data:
+  ollama_data:

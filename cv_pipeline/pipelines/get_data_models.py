@@ -121,10 +121,10 @@ def get_data_models(Base, experiment=None):
         job_title = Column(Text)
 
         # Department
-        job_title = Column(Text)
+        department = Column(Text)
 
         # Level
-        job_title = Column(Text)
+        level = Column(Text)
 
     tables = {
         "applicants": Applicants,

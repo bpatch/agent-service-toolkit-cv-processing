@@ -24,8 +24,9 @@ having to do manual review.
 
 ## Changes to the database tables
 The tables are managed with Alembic. To change them:
-1. Update pipelines/get_data_models.py with new definitions.
-2. 
+1. Update `pipelines/get_data_models.py` with new definitions.
+2. Locally run `uv run --env-file .env alembic revision --autogenerate -m "description of change"`
+3. Do `docker-compose up --build db-migrator`.
 
 
 ## Notes

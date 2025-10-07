@@ -5,6 +5,11 @@ WORKDIR /app
 ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
 ENV UV_COMPILE_BYTECODE=1
 
+# Needed to convert pdf to image
+RUN apt-get update && \
+    apt-get install -y poppler-utils && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml .
 COPY uv.lock .
 RUN pip install --no-cache-dir uv
@@ -15,4 +20,4 @@ RUN uv sync --frozen
 
 COPY cv_pipeline ./cv_pipeline
 
-CMD ["uv", "run", "python", "-m", "cv_pipeline.pipelines.preprocess"]
+CMD ["uv", "run", "python", "-i", "-m", "cv_pipeline.pipelines.preprocess"]

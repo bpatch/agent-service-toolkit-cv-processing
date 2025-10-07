@@ -53,7 +53,9 @@ class ServiceProvider:
             query={"sslmode": "prefer"},
         )
         self.cv_schema = "cv"
-        self.vectorstore_schema = "vectorstore"
+        self.vectorstore_schema = (
+            "vectorstore"  # This is determined by langgraph and can't be changed atm
+        )
 
     # --- Database Services ---
     @cached_property
@@ -62,7 +64,7 @@ class ServiceProvider:
         log.info("Initializing main database engine...")
         return create_engine(
             self.db_url,
-            connect_args={"options": f"-c search_path={self.cv_schema}"},
+            connect_args={"options": f"-c search_path={self.cv_schema},public"},
         )
 
     @cached_property
@@ -94,7 +96,9 @@ class ServiceProvider:
         log.info("Initializing vector store engine...")
         return create_engine(
             self.db_url,
-            connect_args={"options": f"-c search_path={self.vectorstore_schema}"},
+            connect_args={
+                "options": f"-c search_path={self.vectorstore_schema},public"
+            },
         )
 
     # --- AI & Vector Store Services ---

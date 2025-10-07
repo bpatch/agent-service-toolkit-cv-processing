@@ -117,8 +117,6 @@ services:
     depends_on:
       db-migrator:
         condition: service_completed_successfully
-      ollama:
-        condition: service_healthy # Wait for Ollama
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
     networks:
@@ -138,8 +136,6 @@ services:
     depends_on:
       db-migrator:
         condition: service_completed_successfully
-      ollama:
-        condition: service_healthy # Wait for Ollama
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
     networks:
@@ -160,9 +156,6 @@ services:
     tty: true
     volumes:
       - ./data:/app/data # Mounts host 'data' folder into the container
-    depends_on:
-      ollama:
-        condition: service_healthy # Wait for Ollama
     networks:
       - app_net
 
@@ -173,11 +166,6 @@ services:
       - ollama_data:/root/.ollama # Persists models
     ports:
       - "11434:11434"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - app_net
 

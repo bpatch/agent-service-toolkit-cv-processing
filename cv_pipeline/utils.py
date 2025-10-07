@@ -11,12 +11,13 @@ from tenacity import (
 )
 import logging
 import csv
-from typing import List
+from typing import List, Any
 
 log = logging.getLogger(__name__)
 
 
 def log_retry_attempt(retry_state):
+    print(f"{retry_state=}")
     log_message = f"""
     Retrying upload set {retry_state.args[0] + 1} in {retry_state.next_action.sleep}s
     """
@@ -34,7 +35,7 @@ def log_retry_attempt(retry_state):
     reraise=True,
     before_sleep=log_retry_attempt,
 )
-def upload_chunk_set(doc_objects, vector_store, collection_name):
+def upload_chunk_set(set_index, doc_objects, vector_store, collection_name):
     """Uploads a set of document chunks to the vector store with retry."""
     vector_store.add_documents(
         doc_objects,
@@ -164,7 +165,41 @@ def write_to_csv(filename: str, header: List[str], data: List[List[str]]) -> Non
             # Write all the data rows.
             csv_writer.writerows(data)
 
-        print(f"Successfully created '{filename}' with {len(data)} data rows.")
+        log.info(f"Successfully created '{filename}' with {len(data)} data rows.")
 
     except IOError:
         log.error(f" Could not write to the file '{filename}'.")
+
+
+def read_from_csv(file_path: str) -> list[dict[str, Any]]:
+    """
+    Reads a CSV file from disk and converts it into a list of dictionaries.
+
+    This format is suitable for bulk database insertion functions. Each dictionary
+    in the list represents a row from the CSV, with column headers as keys.
+
+    Args:
+        file_path: The full path to the CSV file.
+
+    Returns:
+        A list of dictionaries representing the CSV data.
+        Returns an empty list if the file cannot be found or another error occurs.
+    """
+    try:
+        # 'with' statement ensures the file is properly closed
+        # newline='' is recommended practice for csv files
+        with open(file_path, mode="r", newline="", encoding="utf-8") as csv_file:
+            # csv.DictReader automatically uses the first row as dictionary keys
+            reader = csv.DictReader(csv_file)
+
+            # Convert the reader object directly into a list of dictionaries
+            data = list(reader)
+
+            return data
+
+    except FileNotFoundError:
+        log.error(f"Error: The file at '{file_path}' was not found.")
+        return []
+    except Exception as e:
+        log.error(f"An unexpected error occurred: {e}")
+        return []

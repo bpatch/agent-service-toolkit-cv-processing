@@ -13,6 +13,6 @@ RUN pip install --no-cache-dir uv
 # --frozen: Use exact versions from the lock file
 RUN uv sync --frozen
 
-COPY cv_pipeline .
+COPY cv_pipeline ./cv_pipeline
 
-CMD ["uv", "run", "python", "-m", "cv_pipeline.pipelines.process"]
+CMD ["uv", "run", "python", "-i", "-m", "cv_pipeline.pipelines.process"]

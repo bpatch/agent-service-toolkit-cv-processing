@@ -107,6 +107,10 @@ services:
       - LLM_MODEL=${LLM_MODEL:-gemma3:4b}
       - EMBEDDINGS_PROVIDER=${EMBEDDINGS_PROVIDER:-ollama}
       - EMBEDDINGS_MODEL=${EMBEDDINGS_MODEL:-embeddinggemma:300m}
+    # Keep STDIN open for interaction
+    stdin_open: true
+    # Allocate a pseudo-TTY
+    tty: true
     depends_on:
       - postgres
     volumes:

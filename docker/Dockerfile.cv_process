@@ -2,11 +2,57 @@ FROM python:3.12.3-slim
 
 WORKDIR /app
 
+# All this is for drawing the mermaid diagrams
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    # For npm/node
+    nodejs \
+    npm \
+    # Install the native aarch64 version of Chromium from Debian's repository
+    chromium \
+    # Minimal dependencies for the browser to run headlessly
+    ca-certificates \
+    libnss3 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libexpat1 \
+    libfontconfig1 \
+    libgbm1 \
+    libgdk-pixbuf2.0-0 \
+    libglib2.0-0 \
+    libgtk-3-0 \
+    libpango-1.0-0 \
+    libx11-6 \
+    libx11-xcb1 \
+    libxcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    && npm install -g @mermaid-js/mermaid-cli \
+    && rm -rf /var/lib/apt/lists/*
+
+# Tell Puppeteer to use the system-installed Chromium and skip downloading its own
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+
 ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
 ENV UV_COMPILE_BYTECODE=1
 
 COPY pyproject.toml .
 COPY uv.lock .
+COPY puppeteer-config.json .
+
 RUN pip install --no-cache-dir uv
 
 # Install only the dependencies needed for the client application

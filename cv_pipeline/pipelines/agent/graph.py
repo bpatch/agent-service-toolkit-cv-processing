@@ -14,6 +14,8 @@ class CVAgent:
     def __init__(self, config):
         self.config = config
         self.agent = self.create_compiled_agent_graph()
+        if os.environ.get("EXPERIMENT", None):
+            self.draw_compiled_agent_graph()
 
     def create_compiled_agent_graph(self):
         """Define graph structure in this method."""
@@ -62,5 +64,5 @@ class CVAgent:
         directory_path_pathlib.mkdir(parents=True, exist_ok=True)
         ut.graph_drawer(
             self.compiled_agent,
-            f'cv_pipeline/experiment_files/cv_agent_graph_{os.environ.get("EXPERIMENT")}.png',
+            self.config["experiment_id"]
         )

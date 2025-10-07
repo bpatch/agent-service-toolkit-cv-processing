@@ -2,20 +2,19 @@ import logging
 from .state import AgentState
 import logging
 from ... import utils as ut
+from ...services import services, tables
 
 log = logging.getLogger(__name__)
 
 
 class Nodes:
 
-    def __init__(
-        self,
-        config,
-    ):
+    def __init__(self, config):
         self.config = config
-        self.agent_system_prompt = """
+        self.system_prompt_shared_part = """
         ### Persona ###
-        You are an AI assistant who is an expert at evaluating cvs and resumes.
+        You are an AI assistant who is an expert at evaluating cvs and resumes
+        for job applicants to the Van Gogh Museum in Amsterdam.
         """
 
     def classify_cv(

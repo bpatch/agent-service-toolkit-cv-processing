@@ -12,6 +12,9 @@ from tenacity import (
 import logging
 import csv
 from typing import List, Any
+import subprocess
+import os
+import shutil
 
 log = logging.getLogger(__name__)
 
@@ -203,3 +206,21 @@ def read_from_csv(file_path: str) -> list[dict[str, Any]]:
     except Exception as e:
         log.error(f"An unexpected error occurred: {e}")
         return []
+
+
+def graph_drawer(compiled, experiment_id):
+    mermaid_data = compiled.get_graph().draw_mermaid()
+
+    # Save the Mermaid code to a temporary file
+    with open("temp.mmd", "w") as f:
+        f.write(mermaid_data)
+    file_path = f"data/experiment_files/cv_agent_graph_{experiment_id}.png"
+    file_path_latest = "data/experiment_files/cv_agent_graph_latest.png"
+    # Use mmdc to render the diagram
+    subprocess.run(
+        ["mmdc", "-i", "temp.mmd", "-o", file_path, "-p", "puppeteer-config.json"]
+    )
+
+    shutil.copy(file_path, file_path_latest)
+    # (Optional) Clean up the temporary file
+    os.remove("temp.mmd")

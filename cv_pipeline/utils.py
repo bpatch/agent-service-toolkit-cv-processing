@@ -100,7 +100,7 @@ class ChatFactory:
 
     @staticmethod
     def create(
-        provider: str, model_name: str, temperature: float = 0, **params
+        provider: str, model_name: str, temperature: float = 0, retry=False, **params
     ) -> language_models.BaseChatModel:
         common_retry_config = {
             "stop_after_attempt": 5,
@@ -109,13 +109,27 @@ class ChatFactory:
         if provider == "ollama":
             return ChatOllama(model=model_name, temperature=temperature, **params)
         elif provider == "google":
-            return ChatGoogleGenerativeAI(
-                model=model_name, temperature=temperature, **params
-            ).with_retry(**common_retry_config)
+            if retry:
+                return ChatGoogleGenerativeAI(
+                    model=model_name,
+                    temperature=temperature,
+                    thinking_budget=0,
+                    **params,
+                ).with_retry(**common_retry_config)
+            else:
+                return ChatGoogleGenerativeAI(
+                    model=model_name,
+                    temperature=temperature,
+                    thinking_budget=0,
+                    **params,
+                )
         elif provider == "openai":
-            return OpenAI(
-                model=model_name, temperature=temperature, **params
-            ).with_retry(**common_retry_config)
+            if retry:
+                return OpenAI(
+                    model=model_name, temperature=temperature, **params
+                ).with_retry(**common_retry_config)
+            else:
+                OpenAI(model=model_name, temperature=temperature, **params)
         else:
             raise ValueError(f"Unknown chat type: {provider}")
 

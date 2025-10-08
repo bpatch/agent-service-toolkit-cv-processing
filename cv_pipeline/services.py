@@ -122,6 +122,14 @@ class ServiceProvider:
         )
 
     @cached_property
+    def base_llm(self):
+        """Base LLM to invoke. Only use when can't put retry logic first."""
+        log.info(f"Initializing LLM provider {LLM_PROVIDER} model {LLM_MODEL} ...")
+        return ut.ChatFactory.create(
+            LLM_PROVIDER, LLM_MODEL, temperature=0, retry=False
+        )
+
+    @cached_property
     def llm(self):
         """Main LLM to invoke (has retry logic for Google and OpenAI)."""
         log.info(f"Initializing LLM provider {LLM_PROVIDER} model {LLM_MODEL} ...")

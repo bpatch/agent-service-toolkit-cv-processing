@@ -12,22 +12,21 @@ class Edges:
     ):
         self.config = config
 
-    def route_safety(
+    def route_suitability(
         self, state: AgentState
-    ) -> Literal["clean_up_unsafe_cv", "check_if_calibration_scheduled"]:
+    ) -> Literal["clean_up_invalid_cv", "check_if_calibration_scheduled"]:
         # If the cv is not appropriate for AI, then don't do any further
         # processing, route to a clean up function
-        if state["safe"]:
-            return "check_if_calibration_scheduled"
+        if state.get("invalid_reason", None):
+            return "clean_up_invalid_cv"
         else:
-            return "clean_up_unsafe_cv"
+            return "check_if_calibration_scheduled"
 
     def route_calibration_scheduled(
         self, state: AgentState
     ) -> Literal["retrieve_related_applications", END]:
         # If the cv is not appropriate for AI, then don't do any further
         # processing, route to a clean up function
-        print(state)
         if state["calibration_scheduled"]:
             return END
         else:
@@ -35,20 +34,20 @@ class Edges:
 
     def route_calibration_needed(
         self, state: AgentState
-    ) -> Literal["schedule_calibration", "assess_impression"]:
+    ) -> Literal["schedule_calibration", "extract_cv_information"]:
         # If the cv is not appropriate for AI, then don't do any further
         # processing, route to a clean up function
         if state["calibration_needed"]:
             return "schedule_calibration"
         else:
-            return "assess_impression"
+            return "extract_cv_information"
 
     def route_prompt_injection(
         self, state: AgentState
-    ) -> Literal["clean_up_unsafe_cv", "final_summary"]:
+    ) -> Literal["clean_up_invalid_cv", END]:
         # If the cv is not appropriate for AI, then don't do any further
         # processing, route to a clean up function
         if state["prompt_injection"]:
-            return "clean_up_unsafe_cv"
+            return "clean_up_invalid_cv"
         else:
-            return "final_summary"
+            return END

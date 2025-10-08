@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && \
+    apt-get install -y libreoffice libreoffice-script-provider-python --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
+ENV UV_COMPILE_BYTECODE=1
+
+COPY pyproject.toml .
+COPY uv.lock .
+RUN pip install --no-cache-dir uv
+
+# Install only the dependencies needed for the client application
+# --frozen: Use exact versions from the lock file
+RUN uv sync --frozen
+
+COPY cv_pipeline ./cv_pipeline
+
+CMD ["uv", "run", "python", "-i", "-m", "cv_pipeline.pipelines.create_fake_data"]
